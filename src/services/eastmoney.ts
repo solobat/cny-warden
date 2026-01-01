@@ -9,14 +9,15 @@ export class EastMoneyFinanceService extends BaseFinanceService {
   
   // 价格映射表
   private readonly priceMap: Record<string, number> = {
-    '510300': 3.882,  // 沪深300ETF
+    '510300': 4.32,  // 沪深300ETF
     '510050': 2.8,  // 上证50ETF
     '515170': 0.591, // 食品饮料ETF
-    '006705': 1.3952, // MSCI C
-    '015040': 0.8290, // 食品饮料
-    '110003': 1.7927, // 上证 50 A
-    '501011': 1.081, // 中药 A
-    '000307': 722.703,   // 黄金ETF
+    '006705': 1.5702, // MSCI C
+    '015040': 0.8081, // 食品饮料
+    '110003': 2.0111, // 上证 50 A
+    '501011': 1.1747, // 中药 A
+    '000307': 708,   // 黄金ETF,
+    '518800': 7.413
   };
 
   private readonly typeTextMap: Record<SecurityType, string> = {
@@ -24,7 +25,8 @@ export class EastMoneyFinanceService extends BaseFinanceService {
     'etf': 'ETF',
     'fund': '基金',
     'bond': '债券',
-    'gold': '黄金'
+    'gold': '黄金',
+    'cash': '现金'
   };
 
   // 检查标的是否已存在

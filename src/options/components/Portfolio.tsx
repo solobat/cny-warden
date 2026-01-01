@@ -3,6 +3,7 @@ import { useInvestmentStore } from '../../store/index';
 import { useConfigStore } from '../../store/configStore';
 import { SecuritySearch } from './SecuritySearch';
 import { SecurityPrice } from './SecurityPrice';
+import { DataImportExport } from './DataImportExport';
 import { SearchResult } from '../../services/types';
 
 const getSecurityTypeText = (type: string) => {
@@ -10,7 +11,9 @@ const getSecurityTypeText = (type: string) => {
     'stock': '股票',
     'fund': '基金',
     'etf': 'ETF',
-    'bond': '债券'
+    'bond': '债券',
+    'gold': '黄金',
+    'cash': '现金'
   };
   return typeMap[type] || type;
 };
@@ -52,12 +55,18 @@ export const Portfolio: React.FC = () => {
     });
   };
 
-  const totalValue = investments.reduce((sum, inv) => sum + (inv.currentPrice || 0) * inv.amount, 0);
+  const totalValue = investments.reduce((sum, inv) => {
+    // 现金类型特殊处理，价格始终为1
+    const price = inv.type === 'cash' ? 1 : (inv.currentPrice || 0);
+    return sum + price * inv.amount;
+  }, 0);
 
   // 计算大类资产统计
   const assetTypeStats = investments.reduce((stats, inv) => {
     const type = inv.type;
-    const value = (inv.currentPrice || 0) * inv.amount;
+    // 现金类型特殊处理，价格始终为1
+    const price = inv.type === 'cash' ? 1 : (inv.currentPrice || 0);
+    const value = price * inv.amount;
     if (!stats[type]) {
       stats[type] = { value: 0, count: 0 };
     }
@@ -70,7 +79,9 @@ export const Portfolio: React.FC = () => {
   const sectorStats = investments.reduce((stats, inv) => {
     if (!inv.sector) return stats;
     const sector = inv.sector;
-    const value = (inv.currentPrice || 0) * inv.amount;
+    // 现金类型特殊处理，价格始终为1
+    const price = inv.type === 'cash' ? 1 : (inv.currentPrice || 0);
+    const value = price * inv.amount;
     if (!stats[sector]) {
       stats[sector] = { value: 0, count: 0 };
     }
@@ -83,7 +94,9 @@ export const Portfolio: React.FC = () => {
   const industryStats = investments.reduce((stats, inv) => {
     if (!inv.industry) return stats;
     const industry = inv.industry;
-    const value = (inv.currentPrice || 0) * inv.amount;
+    // 现金类型特殊处理，价格始终为1
+    const price = inv.type === 'cash' ? 1 : (inv.currentPrice || 0);
+    const value = price * inv.amount;
     if (!stats[industry]) {
       stats[industry] = { value: 0, count: 0 };
     }
@@ -94,8 +107,10 @@ export const Portfolio: React.FC = () => {
 
   // 筛选投资列表
   const filteredInvestments = investments.filter(investment => {
-    if (!investment.currentPrice || totalValue === 0) return true;
-    const actualPercentage = (investment.currentPrice * investment.amount / totalValue) * 100;
+    // 现金类型特殊处理，价格始终为1
+    const price = investment.type === 'cash' ? 1 : (investment.currentPrice || 0);
+    if (!price || totalValue === 0) return true;
+    const actualPercentage = (price * investment.amount / totalValue) * 100;
     
     switch (filterStatus) {
       case 'over':
@@ -120,7 +135,32 @@ export const Portfolio: React.FC = () => {
             <div className="bg-gray-800 rounded border border-gray-700 p-3">
               <h2 className="text-xl font-bold mb-3 text-gray-100">添加新标的</h2>
               <SecuritySearch onSelect={handleAddSecurity} />
+              
+              {/* 添加现金按钮 */}
+              <div className="mt-3 pt-3 border-t border-gray-700">
+                <button
+                  onClick={() => {
+                    addInvestment({
+                      code: 'CASH',
+                      name: '现金',
+                      type: 'cash',
+                      amount: 0,
+                      targetPercentage: 0,
+                      currentPrice: 1,
+                      lastUpdate: new Date(),
+                      sector: '现金',
+                      industry: '现金'
+                    });
+                  }}
+                  className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded border border-green-500"
+                >
+                  + 添加现金
+                </button>
+              </div>
             </div>
+
+            {/* 数据导入导出 */}
+            <DataImportExport />
 
             {/* 投资组合概览 */}
             <div className="bg-gray-800 rounded border border-gray-700 p-3">
@@ -281,24 +321,24 @@ export const Portfolio: React.FC = () => {
                       </div>
                     )}
 
-                    {investment.currentPrice && (
+                    {(investment.currentPrice || investment.type === 'cash') && (
                       <div className="mt-2 text-sm text-gray-400">
-                        市值：¥{((investment.currentPrice * investment.amount).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}
+                        市值：¥{((investment.type === 'cash' ? 1 : (investment.currentPrice || 0)) * investment.amount).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         {totalValue > 0 && (
                           <span className={`ml-2 ${
-                            ((investment.currentPrice * investment.amount / totalValue) * 100) > investment.targetPercentage * 1.2 
+                            ((investment.type === 'cash' ? 1 : (investment.currentPrice || 0)) * investment.amount / totalValue) * 100 > investment.targetPercentage * 1.2 
                               ? 'text-red-400' 
-                              : ((investment.currentPrice * investment.amount / totalValue) * 100) > investment.targetPercentage 
+                              : ((investment.type === 'cash' ? 1 : (investment.currentPrice || 0)) * investment.amount / totalValue) * 100 > investment.targetPercentage 
                                 ? 'text-orange-400' 
-                                : ((investment.currentPrice * investment.amount / totalValue) * 100) < investment.targetPercentage * 0.8
+                                : ((investment.type === 'cash' ? 1 : (investment.currentPrice || 0)) * investment.amount / totalValue) * 100 < investment.targetPercentage * 0.8
                                   ? 'text-green-500'
-                                  : ((investment.currentPrice * investment.amount / totalValue) * 100) < investment.targetPercentage
+                                  : ((investment.type === 'cash' ? 1 : (investment.currentPrice || 0)) * investment.amount / totalValue) * 100 < investment.targetPercentage
                                     ? 'text-green-400'
                                     : ''
                           }`}>
-                            (实际占比: {((investment.currentPrice * investment.amount / totalValue) * 100).toFixed(2)}%)
-                            {(((investment.currentPrice * investment.amount / totalValue) * 100) > investment.targetPercentage * 1.2 ||
-                              ((investment.currentPrice * investment.amount / totalValue) * 100) < investment.targetPercentage * 0.8) && (
+                            (实际占比: {((investment.type === 'cash' ? 1 : (investment.currentPrice || 0)) * investment.amount / totalValue * 100).toFixed(2)}%)
+                            {(((investment.type === 'cash' ? 1 : (investment.currentPrice || 0)) * investment.amount / totalValue) * 100 > investment.targetPercentage * 1.2 ||
+                              ((investment.type === 'cash' ? 1 : (investment.currentPrice || 0)) * investment.amount / totalValue) * 100 < investment.targetPercentage * 0.8) && (
                               <span className="ml-1">⚠️</span>
                             )}
                           </span>

@@ -15,9 +15,35 @@ export const SecurityPrice: React.FC<SecurityPriceProps> = ({ code, name, id }) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { defaultSource } = useConfigStore();
-  const { updateInvestment } = useInvestmentStore();
+  const { updateInvestment, investments } = useInvestmentStore();
+  
+  // 获取投资信息以确定类型
+  const investment = investments.find(inv => inv.id === id);
 
   const fetchPrice = async () => {
+    // 现金类型不需要获取价格，直接设置为1
+    if (investment?.type === 'cash') {
+      const cashPriceData = {
+        price: 1,
+        change: 0,
+        changePercent: 0,
+        high: 1,
+        low: 1,
+        open: 1,
+        lastClose: 1,
+        volume: 0,
+        amount: 0,
+        timestamp: new Date()
+      } as PriceData;
+      
+      setPriceData(cashPriceData);
+      updateInvestment(id, {
+        currentPrice: 1,
+        lastUpdate: new Date()
+      });
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -39,10 +65,13 @@ export const SecurityPrice: React.FC<SecurityPriceProps> = ({ code, name, id }) 
 
   useEffect(() => {
     fetchPrice();
-    // 每30秒更新一次价格
+    // 现金类型不需要定时更新，其他类型每30秒更新一次
+    if (investment?.type === 'cash') {
+      return;
+    }
     const interval = setInterval(fetchPrice, 30000);
     return () => clearInterval(interval);
-  }, [code, defaultSource, id]);
+  }, [code, defaultSource, id, investment?.type]);
 
   if (loading && !priceData) {
     return (
@@ -71,6 +100,23 @@ export const SecurityPrice: React.FC<SecurityPriceProps> = ({ code, name, id }) 
   }
 
   const { price, changePercent } = priceData;
+  
+  // 现金类型特殊显示
+  if (investment?.type === 'cash') {
+    return (
+      <div>
+        <div className="text-gray-200">{name}</div>
+        <div className="text-sm">
+          <span className="text-gray-400">{code}</span>
+          <span className="mx-2">|</span>
+          <span className="text-blue-400">
+            ¥{price.toFixed(2)} (现金)
+          </span>
+        </div>
+      </div>
+    );
+  }
+  
   const isPositive = changePercent > 0;
   const color = isPositive ? 'text-red-400' : 'text-green-400';
 

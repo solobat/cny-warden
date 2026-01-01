@@ -11,11 +11,15 @@ export const App: React.FC = () => {
     loadInvestments();
   }, [loadInvestments]);
 
-  const totalAmount = investments.reduce((sum, inv) => sum + (inv.currentPrice || 0) * inv.amount, 0);
+  const totalAmount = investments.reduce((sum, inv) => {
+    // 现金类型特殊处理，价格始终为1
+    const price = inv.type === 'cash' ? 1 : (inv.currentPrice || 0);
+    return sum + price * inv.amount;
+  }, 0);
 
   const chartData = investments.map(inv => ({
     name: inv.name,
-    value: (inv.currentPrice || 0) * inv.amount
+    value: (inv.type === 'cash' ? 1 : (inv.currentPrice || 0)) * inv.amount
   }));
 
   return (
@@ -78,9 +82,9 @@ export const App: React.FC = () => {
                         <td>{investment.name}</td>
                         <td>{investment.code}</td>
                         <td>{investment.amount}</td>
-                        <td>¥{investment.currentPrice?.toFixed(2)}</td>
-                        <td>¥{((investment.currentPrice || 0) * investment.amount).toFixed(2)}</td>
-                        <td>{totalAmount > 0 ? `${(((investment.currentPrice || 0) * investment.amount / totalAmount) * 100).toFixed(2)}%` : '-'}</td>
+                        <td>¥{(investment.type === 'cash' ? 1 : (investment.currentPrice || 0)).toFixed(2)}</td>
+                        <td>¥{((investment.type === 'cash' ? 1 : (investment.currentPrice || 0)) * investment.amount).toFixed(2)}</td>
+                        <td>{totalAmount > 0 ? `${(((investment.type === 'cash' ? 1 : (investment.currentPrice || 0)) * investment.amount / totalAmount) * 100).toFixed(2)}%` : '-'}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -67,7 +67,18 @@ export class PriceUpdater {
       // 批量更新价格
       await Promise.all(investments.map(async (investment) => {
         try {
-          const priceData = await financeService.getPriceData(investment.code);
+          let priceData;
+          
+          // 现金类型特殊处理，价格始终为1
+          if (investment.type === 'cash') {
+            priceData = {
+              price: 1,
+              timestamp: new Date()
+            } as any;
+          } else {
+            priceData = await financeService.getPriceData(investment.code);
+          }
+          
           const oldPrice = investment.currentPrice;
           
           // 更新价格
@@ -76,8 +87,8 @@ export class PriceUpdater {
             lastUpdate: priceData.timestamp
           });
 
-          // 如果价格发生变化，发送通知
-          if (oldPrice && oldPrice !== priceData.price) {
+          // 如果价格发生变化，发送通知（现金类型不发送通知）
+          if (oldPrice && oldPrice !== priceData.price && investment.type !== 'cash') {
             const changePercent = ((priceData.price - oldPrice) / oldPrice) * 100;
             const notification: PriceChangeNotification = {
               investment,

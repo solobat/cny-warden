@@ -1,4 +1,4 @@
-export type SecurityType = 'stock' | 'fund' | 'etf' | 'bond' | 'gold';
+export type SecurityType = 'stock' | 'fund' | 'etf' | 'bond' | 'gold' | 'cash';
 
 export interface SecurityInfo {
   code: string;
